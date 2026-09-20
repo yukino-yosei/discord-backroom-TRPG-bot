@@ -8,9 +8,9 @@
 ### /roll
 - Argument : /roll (expression)
 - expression form
-- - operator : +, -
-- - (number_of_repetitions)d(number) -> random 1 ~ (number) for number_of_repetition
-- - only number : (number)
+    - operator : +, -
+    - (number_of_repetitions)d(number) -> random 1 ~ (number) for number_of_repetition
+    - only number : (number)
 - return total result
 ### /레벨변경
 - Argument : /레벨변경 (number)
