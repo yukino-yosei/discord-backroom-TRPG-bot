@@ -133,6 +133,15 @@ async def roll(interaction: discord.Interaction, 입력값: str):
     현재레벨 = "현재레벨(숫자값 입력)"
 )
 async def 레벨변경(interaction: discord.Interaction, 현재레벨: int) :
+    user_id = interaction.user.id
+
+    cursor.execute(
+        "INSERT OR IGNORE INTO users (user_id) VALUES (?)",
+        (user_id,)
+    )
+
+    db.commit()
+
     cursor.execute(
         "SELECT level FROM users WHERE user_id = ?",
         (interaction.user.id,)
@@ -155,8 +164,10 @@ async def 레벨변경(interaction: discord.Interaction, 현재레벨: int) :
         inline = False
     )
 
-    if front_level == -1 :
+    if front_level is None or front_level[0] == -1 :
         front_level = 0
+    else :
+        front_level = front_level[0]
 
     embed.add_field(
         name = "",
@@ -167,7 +178,7 @@ async def 레벨변경(interaction: discord.Interaction, 현재레벨: int) :
     await interaction.response.send_message(embed = embed)
     cursor.execute(
         "UPDATE users SET level = ? WHERE user_id = ?",
-        (현재레벨, interaction.user.id)
+        (현재레벨, interaction.user.id,)
     )
 
     db.commit()
@@ -176,22 +187,24 @@ async def 레벨변경(interaction: discord.Interaction, 현재레벨: int) :
     name = "레벨조회",
     description = "현재 자신의 레벨을 조회합니다."
 )
-async def 레벨조회(interaction: discord.Interaction, request = interaction.user.name) :
+async def 레벨조회(interaction: discord.Interaction) :
     cursor.execute(
         "SELECT level FROM users WHERE user_id = ?",
-        (interaction.user.id)
+        (interaction.user.id,)
     )
 
     current_level = cursor.fetchone()
 
-    if current_level == -1 :
-        corrent_level "없음"
+    if current_level is None or current_level[0] == -1 :
+        current_level = "없음"
+    else :
+        current_level = current_level[0]
 
     embed = discord.Embed(title = "레벨 조회")
     
     embed.add_field(
         name = "현재 레벨",
-        value = f"레벨 {corrent_level}",
+        value = f"레벨 {current_level}",
         inline = False
     )
 
@@ -202,12 +215,20 @@ async def 레벨조회(interaction: discord.Interaction, request = interaction.u
     description = "레벨을 랜덤으로 설정합니다 (0~999)"
 )
 async def 랜덤레벨(interaction: discord.Interaction) :
+    user_id = interaction.user.id
     random_level = randint(0, 999)
 
-    if interaction.user.name in levels :
-        front_level = levels[interaction.user.name]
+    cursor.execute(
+        "SELECT level FROM users WHERE user_id = ?",
+        (user_id,)
+    )
+
+    front_level = cursor.fetchone()
+
+    if front_level is None or front_level[0] == -1 :
+        front_level = "없음"
     else :
-        front_level = 0
+        front_level = front_level[0]
 
     embed = discord.Embed(title = "랜덤 레벨 결과")
 
@@ -224,6 +245,12 @@ async def 랜덤레벨(interaction: discord.Interaction) :
     )
 
     await interaction.response.send_message(embed = embed)
-    levels[interaction.user.name] = random_level
+
+    cursor.execute(
+        "UPDATE users SET level = ? WHERE user_id = ?",
+        (random_level, user_id)
+    )
+
+    db.commit()
 
 bot.run(TOKEN)
