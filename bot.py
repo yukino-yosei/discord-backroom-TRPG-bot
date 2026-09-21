@@ -259,7 +259,12 @@ async def 랜덤레벨(interaction: discord.Interaction) :
 )
 async def 도박(interaction: discord.Interaction) :
 
+    # gamemaster_id = discord.utils.get(interaction.guild.members, name = GM_id)
+    mention_id = await bot.fetch_user(GM_id)
+
     gamble = randint(1, 2000)
+
+    embed = discord.Embed(title = "도박")
 
     embed.add_field(
         name = "도박 결과",
@@ -275,7 +280,7 @@ async def 도박(interaction: discord.Interaction) :
 
     embed.add_field(
         name = "GM 멘션",
-        value = f"@{GM_id}",
+        value = f"{mention_id.mention}",
         inline = False
     )
 
