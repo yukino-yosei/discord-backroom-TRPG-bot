@@ -69,7 +69,7 @@ def dnd(inp) :
     return (sum_result, final_list, return_sum)
 
 
-from config import TOKEN
+from config import TOKEN, GM_id
 
 
 class MyBot(discord.Client):
@@ -252,5 +252,33 @@ async def 랜덤레벨(interaction: discord.Interaction) :
     )
 
     db.commit()
+
+@bot.tree.command(
+    name = "도박"
+    description = "1d2000을 굴려 도박을 합니다. (하루 1회 제한)"
+)
+async def 도박(interaction: discord.Interaction) :
+
+    gamble = randint(1, 2000)
+
+    embed.add_field(
+        name = "도박 결과"
+        value = f"{"성공" if gamble == 1 else "실패"}"
+        inline = False
+    )
+
+    embed.add_field(
+        name = "보너스 결과"
+        value = f"{"성공" if gamble < 100 else "실패"}"
+        inline = False
+    )
+
+    embed.add_field(
+        name = "GM 멘션"
+        value = f"@{GM_id}"
+        inline = False
+    )
+
+    await interaction.response.send_message(embed = embed)
 
 bot.run(TOKEN)
