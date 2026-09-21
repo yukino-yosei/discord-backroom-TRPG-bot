@@ -258,10 +258,7 @@ async def 랜덤레벨(interaction: discord.Interaction) :
     description = "1d2000을 굴려 도박을 합니다. (하루 1회 제한)"
 )
 async def 도박(interaction: discord.Interaction) :
-
-    # gamemaster_id = discord.utils.get(interaction.guild.members, name = GM_id)
     mention_id = await bot.fetch_user(GM_id)
-
     gamble = randint(1, 2000)
 
     embed = discord.Embed(title = "도박")
