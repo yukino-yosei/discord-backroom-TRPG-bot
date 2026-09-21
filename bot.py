@@ -264,6 +264,12 @@ async def 도박(interaction: discord.Interaction) :
     embed = discord.Embed(title = "도박")
 
     embed.add_field(
+        name = "수 결과",
+        value = f"1d2000 -> **{gamble}**",
+        inline = False
+    )
+
+    embed.add_field(
         name = "도박 결과",
         value = f"{"성공" if gamble == 1 else "실패"}",
         inline = False
@@ -275,11 +281,12 @@ async def 도박(interaction: discord.Interaction) :
         inline = False
     )
 
-    embed.add_field(
-        name = "GM 멘션",
-        value = f"{mention_id.mention}",
-        inline = False
-    )
+    if gamble < 100 :
+        embed.add_field(
+            name = "GM 멘션",
+            value = f"{mention_id.mention}",
+            inline = False
+        )
 
     await interaction.response.send_message(embed = embed)
 
