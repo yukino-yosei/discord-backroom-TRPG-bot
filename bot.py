@@ -14,6 +14,15 @@ CREATE TABLE IF NOT EXISTS users (
 )
 """)
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS questions (
+    user_id INTEGER PRIMARY KEY,
+    title INTEGER DEFAULT "",
+    question INTEGER DEFAULT "",
+    number INTEGER DEFAULT 1
+)
+""")
+
 db.commit()
 
 def sum_cal(inp) :
@@ -178,7 +187,7 @@ async def 레벨변경(interaction: discord.Interaction, 현재레벨: int) :
     await interaction.response.send_message(embed = embed)
     cursor.execute(
         "UPDATE users SET level = ? WHERE user_id = ?",
-        (현재레벨, interaction.user.id,)
+        (현재레벨, interaction.user.id)
     )
 
     db.commit()
@@ -257,6 +266,7 @@ async def 랜덤레벨(interaction: discord.Interaction) :
     name = "도박",
     description = "1d2000을 굴려 도박을 합니다. (하루 1회 제한)"
 )
+@app_commands.checks.cooldown(1, 86400, key = lambda interaction: interaction.user.id)
 async def 도박(interaction: discord.Interaction) :
     mention_id = await bot.fetch_user(GM_id)
     gamble = randint(1, 2000)
@@ -284,7 +294,51 @@ async def 도박(interaction: discord.Interaction) :
     if gamble < 100 :
         embed.add_field(
             name = "GM 멘션",
-            value = f"{mention_id.mention}",
+            value = mention_id.mention,
+            inline = False
+        )
+
+    await interaction.response.send_message(embed = embed)
+
+@bot.tree.command(
+    name = "퀴즈등록",
+    description = "GM의 한하여 퀴즈를 등록할 수 있습니다."
+)
+async def 퀴즈등록(interaction: discord.Interaction, 제목: str, 본문내용: str, 인원수: int) :
+    embed = discord.Embed(title = "퀴즈 등록")
+
+    if interaction.user.id == GM_id :
+        cursor.execute(
+            "INSERT OR IGNORE INTO questions (user_id) VALUES (?)",
+            (GM_id,)
+        )
+        cursor.execute(
+            "SELECT question FROM questions WHERE user_id = ?",
+            (GM_id,)
+        )
+        cursor.execute(
+            "UPDATE questions SET title = ?, question = ?, number = ? WHERE user_id = ?",
+            (제목, 본문내용, 인원수, GM_id)
+        )
+
+        db.commit()
+
+        embed.add_field(
+            name = 제목,
+            value = 본문내용,
+            inline = False
+        )
+
+        embed.add_field(
+            name = "정원",
+            value = f"{인원수}명",
+            inline = False
+        )
+
+    else :
+        embed.add_field(
+            name = "",
+            value = "GM의 계정이 아닙니다.",
             inline = False
         )
 
