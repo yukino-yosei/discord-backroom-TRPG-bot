@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS questions (
     user_id INTEGER PRIMARY KEY,
     title INTEGER DEFAULT "",
     question INTEGER DEFAULT "",
-    number INTEGER DEFAULT 1
+    number INTEGER DEFAULT 1,
+    answer INTEGER DEFAULT ""
 )
 """)
 
@@ -304,7 +305,7 @@ async def 도박(interaction: discord.Interaction) :
     name = "퀴즈등록",
     description = "GM의 한하여 퀴즈를 등록할 수 있습니다."
 )
-async def 퀴즈등록(interaction: discord.Interaction, 제목: str, 본문내용: str, 인원수: int) :
+async def 퀴즈등록(interaction: discord.Interaction, 제목: str, 본문내용: str, 인원수: int, 정답: str) :
     embed = discord.Embed(title = "퀴즈 등록")
 
     if interaction.user.id == GM_id :
@@ -312,13 +313,10 @@ async def 퀴즈등록(interaction: discord.Interaction, 제목: str, 본문내�
             "INSERT OR IGNORE INTO questions (user_id) VALUES (?)",
             (GM_id,)
         )
+
         cursor.execute(
-            "SELECT question FROM questions WHERE user_id = ?",
-            (GM_id,)
-        )
-        cursor.execute(
-            "UPDATE questions SET title = ?, question = ?, number = ? WHERE user_id = ?",
-            (제목, 본문내용, 인원수, GM_id)
+            "UPDATE questions SET title = ?, question = ?, number = ?, answer = ? WHERE user_id = ?",
+            (제목, 본문내용, 인원수, 정답, GM_id)
         )
 
         db.commit()
@@ -342,6 +340,122 @@ async def 퀴즈등록(interaction: discord.Interaction, 제목: str, 본문내�
             inline = False
         )
 
+    await interaction.response.send_message(
+        embed = embed,
+        emphemeral = True
+    )
+
+@bot.tree.command(
+    name = "퀴즈보기",
+    description = "등록된 퀴즈를 봅니다."
+)
+async def 퀴즈보기(interaction: discord.Interaction) :
+    embed = discord.Embed(title = "퀴즈 등록 현황")
+
+    if interaction.user.id == GM_id :
+        cursor.execute(
+            "SELECT title, question, number FROM questions WHERE user_id = ?",
+            (interaction.user.id,)
+        )
+        Q_title, Q_question, Q_number = cursor.fetchone()
+
+        embed.add_field(
+            name = f"제목 : **{Q_title}**",
+            value = f"{Q_question}",
+            inline = False
+        )
+
+        embed.add_field(
+            name = "정답",
+            value = f"{Q_answer}",
+            inline = False
+        )
+
+        embed.add_field(
+            name = "인원수",
+            value = f"{Q_number}명",
+            inline = False
+        )
+
+    else :
+        embed.add_field(
+            name = "",
+            value = "GM의 계정이 아닙니다.",
+            inline = False
+        )
+    
+    await interaction.response.send_message(
+        embed = embed,
+        emphemeral = True
+    )
+
+@bot.tree.command(
+    name = "퀴즈실행",
+    description = "등록된 퀴즈를 실행합니다."
+)
+async def 퀴즈실행(interaction: discord.Interaction) :
+    cursor.execute(
+        "SELECT title, question, number FROM questions WHERE user_id = ?",
+        (interaction.user.id,)
+    )
+    Q_title, Q_question, Q_number, Q_answer = cursor.fetchone()
+
+    embed = discord.Embed(title = f"# {Q_title}")
+    
+    embed.add_field(
+        name = "본문 내용",
+        value = f"{Q_question}",
+        inline = False
+    )
+
+    embed.add_field(
+        name = "인원수 제한",
+        value = f"{Q_number}명",
+        inline = False
+    )
+
+    embed.add_field(
+        name = "",
+        value = "@BackRoom"
+        inline = False
+    )
+
+    await interaction.response.send_message(embed = embed)
+
+@bot.tree.command(
+    name = "정답입력",
+    description = "정답을 입력합니다."
+)
+async def 정답입력(interaction: discord.Interaction, 내용입력: str) :
+    cursor.execute(
+        "SELECT answer FROM questions WHERE user_id = ?",
+        (GM_id,)
+    )
+    
+    Q_answer = cursor.fetchone()
+
+    if 내용입력 == Q_answer :
+        embed.add_field(
+            name = "정답 여부",
+            value = "**정답**",
+            inline = False
+        )
+
+        mention_id = await bot.fetch_user(GM_id)
+
+        embed.add_field(
+            name = "",
+            value = mention_id.mention,
+            inline = False
+        )
+    
+    else :
+        embed.add_field(
+            name = "정답 여부",
+            value = "**오답**",
+            inline = False
+        )
+    
     await interaction.response.send_message(embed = embed)
 
 bot.run(TOKEN)
