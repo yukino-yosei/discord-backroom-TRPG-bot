@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS questions (
     user_id INTEGER PRIMARY KEY,
     title TEXT DEFAULT "",
     question TEXT DEFAULT "",
-    number TEXT DEFAULT 1,
+    number INTEGER DEFAULT 1,
     answer TEXT DEFAULT ""
 )
 """)
@@ -77,7 +77,7 @@ def dnd(inp) :
     return (sum_result, final_list, return_sum)
 
 
-from config import TOKEN, GM_id
+from config import TOKEN, GM_id, role_id
 
 
 class MyBot(discord.Client):
@@ -227,6 +227,12 @@ async def 랜덤레벨(interaction: discord.Interaction) :
     random_level = randint(0, 999)
 
     cursor.execute(
+        "INSERT OR IGNORE INTO users (user_id) VALUES (?)",
+        (user_id,)
+    )
+    db.commit()
+
+    cursor.execute(
         "SELECT level FROM users WHERE user_id = ?",
         (user_id,)
     )
@@ -245,6 +251,9 @@ async def 랜덤레벨(interaction: discord.Interaction) :
         value = f"레벨 {front_level} -> **레벨 {random_level}**",
         inline = False
     )
+
+    if front_level == "없음" :
+        front_level = 0
 
     embed.add_field(
         name = "",
@@ -267,7 +276,6 @@ async def 랜덤레벨(interaction: discord.Interaction) :
 )
 @app_commands.checks.cooldown(1, 86400, key = lambda interaction: interaction.user.id)
 async def 도박(interaction: discord.Interaction) :
-    mention_id = await bot.fetch_user(GM_id)
     gamble = randint(1, 2000)
 
     embed = discord.Embed(title = "도박")
@@ -291,13 +299,13 @@ async def 도박(interaction: discord.Interaction) :
     )
 
     if gamble < 100 :
-        embed.add_field(
-            name = "GM 멘션",
-            value = mention_id.mention,
-            inline = False
+        await interaction.response.send_message(
+            content = f"<@{GM_id}>",
+            embed = embed)
+    else :
+        await interaction.response.send_message(
+            embed = embed
         )
-
-    await interaction.response.send_message(embed = embed)
 
 @bot.tree.command(
     name = "퀴즈등록",
@@ -392,33 +400,43 @@ async def 퀴즈보기(interaction: discord.Interaction) :
     description = "등록된 퀴즈를 실행합니다."
 )
 async def 퀴즈실행(interaction: discord.Interaction) :
-    cursor.execute(
-        "SELECT title, question, number FROM questions WHERE user_id = ?",
-        (interaction.user.id,)
-    )
-    Q_title, Q_question, Q_number = cursor.fetchone()
+    if interaction.user.id == GM_id :
+        cursor.execute(
+            "SELECT title, question, number FROM questions WHERE user_id = ?",
+            (GM_id,)
+        )
+        Q_title, Q_question, Q_number = cursor.fetchone()
 
-    embed = discord.Embed(title = f"{Q_title}")
-    
-    embed.add_field(
-        name = "본문 내용",
-        value = f"{Q_question}",
-        inline = False
-    )
+        embed = discord.Embed(title = f"{Q_title}")
+        
+        embed.add_field(
+            name = "본문 내용",
+            value = f"{Q_question}",
+            inline = False
+        )
 
-    embed.add_field(
-        name = "인원수 제한",
-        value = f"**{Q_number}명**",
-        inline = False
-    )
+        embed.add_field(
+            name = "인원수 제한",
+            value = f"**{Q_number}명**",
+            inline = False
+        )
 
-    embed.add_field(
-        name = "",
-        value = "@BackRoom",
-        inline = False
-    )
+        await interaction.response.send_message(
+            content = f"<@&{role_id}>",
+            embed = embed)
+    else :
+        embed = discord.Embed(title = "퀴즈실행")
+        
+        embed.add_field(
+            name = "",
+            value = "GM의 계정이 아닙니다.",
+            inline = False
+        )
 
-    await interaction.response.send_message(embed = embed)
+        await interaction.response.send_message(
+            embed = embed,
+            ephemeral = True
+        )
 
 @bot.tree.command(
     name = "정답입력",
@@ -440,18 +458,13 @@ async def 정답입력(interaction: discord.Interaction, 내용입력: str) :
         inline = False
     )
 
+    win = 0
+
     if 내용입력 == Q_answer :
+        win = 1
         embed.add_field(
             name = "정답 여부",
             value = "**정답**",
-            inline = False
-        )
-
-        mention_id = await bot.fetch_user(GM_id)
-
-        embed.add_field(
-            name = "",
-            value = mention_id.mention,
             inline = False
         )
     
@@ -462,6 +475,14 @@ async def 정답입력(interaction: discord.Interaction, 내용입력: str) :
             inline = False
         )
     
-    await interaction.response.send_message(embed = embed)
+    if win :
+        await interaction.response.send_message(
+            content = f"<@{GM_id}>",
+            embed = embed
+        )
+    else :
+        await interaction.response.send_message(
+            embed = embed
+        )
 
 bot.run(TOKEN)
