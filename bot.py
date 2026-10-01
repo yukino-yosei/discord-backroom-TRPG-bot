@@ -17,14 +17,12 @@ CREATE TABLE IF NOT EXISTS users (
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS questions (
     user_id INTEGER PRIMARY KEY,
-    title INTEGER DEFAULT "",
-    question INTEGER DEFAULT "",
-    number INTEGER DEFAULT 1,
-    answer INTEGER DEFAULT ""
+    title TEXT DEFAULT "",
+    question TEXT DEFAULT "",
+    number TEXT DEFAULT 1,
+    answer TEXT DEFAULT ""
 )
 """)
-
-db.commit()
 
 def sum_cal(inp) :
     while inp :
@@ -342,7 +340,7 @@ async def 퀴즈등록(interaction: discord.Interaction, 제목: str, 본문내�
 
     await interaction.response.send_message(
         embed = embed,
-        emphemeral = True
+        ephemeral = True
     )
 
 @bot.tree.command(
@@ -354,10 +352,10 @@ async def 퀴즈보기(interaction: discord.Interaction) :
 
     if interaction.user.id == GM_id :
         cursor.execute(
-            "SELECT title, question, number FROM questions WHERE user_id = ?",
+            "SELECT title, question, number, answer FROM questions WHERE user_id = ?",
             (interaction.user.id,)
         )
-        Q_title, Q_question, Q_number = cursor.fetchone()
+        Q_title, Q_question, Q_number, Q_answer = cursor.fetchone()
 
         embed.add_field(
             name = f"제목 : **{Q_title}**",
@@ -386,7 +384,7 @@ async def 퀴즈보기(interaction: discord.Interaction) :
     
     await interaction.response.send_message(
         embed = embed,
-        emphemeral = True
+        ephemeral = True
     )
 
 @bot.tree.command(
@@ -398,9 +396,9 @@ async def 퀴즈실행(interaction: discord.Interaction) :
         "SELECT title, question, number FROM questions WHERE user_id = ?",
         (interaction.user.id,)
     )
-    Q_title, Q_question, Q_number, Q_answer = cursor.fetchone()
+    Q_title, Q_question, Q_number = cursor.fetchone()
 
-    embed = discord.Embed(title = f"# {Q_title}")
+    embed = discord.Embed(title = f"{Q_title}")
     
     embed.add_field(
         name = "본문 내용",
@@ -410,13 +408,13 @@ async def 퀴즈실행(interaction: discord.Interaction) :
 
     embed.add_field(
         name = "인원수 제한",
-        value = f"{Q_number}명",
+        value = f"**{Q_number}명**",
         inline = False
     )
 
     embed.add_field(
         name = "",
-        value = "@BackRoom"
+        value = "@BackRoom",
         inline = False
     )
 
@@ -431,8 +429,16 @@ async def 정답입력(interaction: discord.Interaction, 내용입력: str) :
         "SELECT answer FROM questions WHERE user_id = ?",
         (GM_id,)
     )
+
+    embed = discord.Embed(title = f"{interaction.user.name} 정답 입력")
     
-    Q_answer = cursor.fetchone()
+    Q_answer, = cursor.fetchone()
+
+    embed.add_field(
+        name = "입력된 답",
+        value = f"{내용입력}",
+        inline = False
+    )
 
     if 내용입력 == Q_answer :
         embed.add_field(
